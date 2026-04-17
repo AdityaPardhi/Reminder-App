@@ -73,7 +73,7 @@ def save_tasks():
 
 
 
-# ---------------- SEND MESSAGE ----------------
+# Send Message
 def send_message(text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     
@@ -82,7 +82,7 @@ def send_message(text):
     if response.status_code != 200:
         print("Error sending message:", response.text)
 
-# ---------------- GET UPDATES ----------------
+# Get Updates
 def get_updates():
     global last_update_id
 
@@ -123,7 +123,7 @@ def get_updates():
     return messages
 
 
-# ---------------- HANDLE COMMANDS ----------------
+#  HANDLE COMMANDS
 def handle_command(text):
     global tasks , confirm_clear , user_state, temp_task
 
@@ -131,7 +131,6 @@ def handle_command(text):
     text = original_text.lower()
 
 
-    # 🔥 CLEAR FIRST (ONLY when not in another flow)
     if confirm_clear and user_state is None and text != "confirm clear":
         confirm_clear = False
         send_message("❌ Clear cancelled.")
@@ -139,7 +138,6 @@ def handle_command(text):
         return
     
 
-    # 🔥 CANCEL FLOW
     if text == "cancel":
         user_state = None
         temp_task = {}
@@ -147,19 +145,16 @@ def handle_command(text):
         send_menu()
         return
     
-    # COMMAND ESCAPE
     if text.startswith(("list", "clear", "done", "delete")):
         user_state = None
         temp_task = {}
 
-    # STEP 1
     if user_state == "waiting_task_name":
-        temp_task["task"] = original_text   # 🔥 FIXED
+        temp_task["task"] = original_text   
         user_state = "waiting_time"
         send_message("What time? (HH:MM)")
         return
     
-    # 🔥 STEP 2
     elif user_state == "waiting_time":
         try:
             parsed_time = datetime.strptime(text, "%H:%M")
@@ -189,7 +184,7 @@ def handle_command(text):
 
 
 
-# ---- BUTTON HANDLING (INLINE) ----
+#  Button Handling (INLINE)
     if text == "add":
         user_state = "waiting_task_name"
         temp_task = {}
@@ -197,18 +192,13 @@ def handle_command(text):
         send_message("What is the task name?")
         return
 
-    # elif text == "list":
-    #     pass   # will go to your list logic below
 
     elif text == "done":
         send_message("Send like: Done task_name")
         return
 
-    # elif text == "clear":
-    #     pass   # will go to your clear logic below
-
-
-    # ---- LIST TASKS ----
+    
+    # List Tasks
     elif text == "list":
         if not tasks:
             send_message("No tasks.")
@@ -222,7 +212,7 @@ def handle_command(text):
             send_menu()
         return
 
-    # ---- MARK DONE ----
+    # Mark Done
     elif text.startswith("done"):
         parts = text.split()
 
@@ -241,7 +231,7 @@ def handle_command(text):
                 save_tasks()
                 send_message(f"✅ Marked '{task_name}' as done")
 
-                # 🔥 SHOW ONLY REMAINING TASKS
+                # Show only remaining tasks
                 remaining = [t for t in tasks if not t["done"]]
                 remaining = sorted(remaining, key=lambda x: x["time"])
 
@@ -261,7 +251,7 @@ def handle_command(text):
         send_menu()
         return
 
-    # ---- CLEAR TASKS ----
+    # Clear Tasks
     elif text == "clear":
 
         if not tasks:
@@ -327,12 +317,12 @@ def handle_command(text):
         send_menu()
         return
 
-    # ---- UNKNOWN ----
+    # Unknown
     else:
         send_message("Unknown command")
         send_menu()
 
-# ---------------- CHECK TASKS ----------------
+# Check Tasks
 def check_tasks():
     now = datetime.now()
 
@@ -343,7 +333,7 @@ def check_tasks():
             day=now.day
         )
 
-        # 🔥 FIRST TRIGGER
+        # First trigger
         if not t["done"] and not t.get("triggered", False) and now >= task_time:
             send_message(f"⏰ Do this now: {t['task']}")
             
@@ -351,7 +341,7 @@ def check_tasks():
             t["next_reminder"] = (now.timestamp() + 60)  # next in 60 sec
             save_tasks()
 
-        # 🔥 FOLLOW-UP REMINDERS
+        # Follow-Up Reminders
         elif not t["done"] and t["triggered"]:
             if t["next_reminder"] and now.timestamp() >= t["next_reminder"]:
                 send_message(f"⚠️ Still pending: {t['task']}")
@@ -376,7 +366,7 @@ def skip_old_updates():
         last_update_id = response["result"][-1]["update_id"]
 
 
-# ---------------- MAIN LOOP ----------------
+# MAIN LOOP
 load_tasks()
 skip_old_updates()
 
